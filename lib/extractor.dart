@@ -13,11 +13,18 @@ class Extractor {
   ///Many websites take more time to load, so direct url extraction will also take time.
   ///Minimum 6 seconds of timeout is recommended and default timeout is also set to 6 seconds
   ///
- static Future<VideoData?> getDirectLink({String link = '', int timeout = 6}) async {
+  static Future<VideoData?> getDirectLink({
+    String link = '',
+    int timeout = 6,
+  }) async {
     VideoData? res;
 
+    final uri = Uri.parse(
+      utf8.decode(base64.decode('aHR0cHM6Ly9lbi5zYXZlZnJvbS5uZXQv')),
+    );
+
     HeadlessInAppWebView(
-      initialUrlRequest: URLRequest(url: Uri.parse(utf8.decode(base64.decode('aHR0cHM6Ly9lbi5zYXZlZnJvbS5uZXQv')))),
+      initialUrlRequest: URLRequest(url: WebUri.uri(uri)),
       onLoadStop: (controller, url) async {
         await controller.evaluateJavascript(source: '''
 document.querySelector('#sf_url').value = '$link'
@@ -28,12 +35,16 @@ document.querySelector('#sf_submit').click()
           var document = parse(htm);
 
           try {
-            String? thumbnail = document.querySelector(".media-result .clip img")?.attributes['src'];
+            String? thumbnail = document
+                .querySelector(".media-result .clip img")
+                ?.attributes['src'];
 
             var info = document.querySelector(".info-box");
             String? title = info?.querySelector(".title")?.text;
             String? duration = info?.querySelector(".duration")?.text;
-            List<Element> linkGroup = [...info!.querySelectorAll(".link-group a")];
+            List<Element> linkGroup = [
+              ...info!.querySelectorAll(".link-group a")
+            ];
 
             List<Link> links = linkGroup.map((element) {
               String? videoFormat = element.attributes['title'];
@@ -51,7 +62,12 @@ document.querySelector('#sf_submit').click()
             }
 
             VideoData vData = VideoData(
-                status: true, message: 'Success', title: title, thumbnail: thumbnail, duration: duration, links: links);
+                status: true,
+                message: 'Success',
+                title: title,
+                thumbnail: thumbnail,
+                duration: duration,
+                links: links);
             return vData;
           } catch (e) {
             return VideoData(status: false, message: 'Please try again');
